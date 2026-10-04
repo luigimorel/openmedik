@@ -1,50 +1,95 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { ChatWorkspace } from "./components/ChatWorkspace";
+import type { ChatMode, Conversation, Message } from "./types";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [draft, setDraft] = useState("");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [mode, setMode] = useState<ChatMode>("diagnosis");
+  const activeConversation = conversations.find(
+    (conversation) => conversation.id === activeChatId,
+  );
+  const messages = activeConversation?.messages ?? [];
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  function sendMessage(
+    text = draft,
+    attachments: File[] = [],
+    webSearch = false,
+  ) {
+    const message = text.trim();
+    if (!message && attachments.length === 0) return;
+
+    const chatId = activeChatId ?? crypto.randomUUID();
+    const currentConversation = conversations.find(
+      (conversation) => conversation.id === chatId,
+    );
+    const reply: Message = {
+      role: "assistant",
+      text: `Demo mode: the language model${webSearch ? " and web search" : ""} isn't connected. ${attachments.length ? `${attachments.length} attachment${attachments.length === 1 ? " was" : "s were"} added locally to this chat.` : "Connect a language model to get a response."}`,
+    };
+    const updatedConversation: Conversation = {
+      id: chatId,
+      title:
+        currentConversation?.title ??
+        (message || attachments[0]?.name || "New conversation").slice(0, 38),
+      mode,
+      messages: [
+        ...(currentConversation?.messages ?? []),
+        { role: "user", text: message, attachments, webSearch },
+        reply,
+      ],
+    };
+
+    setConversations((current) =>
+      currentConversation
+        ? current.map((conversation) =>
+            conversation.id === chatId ? updatedConversation : conversation,
+          )
+        : [updatedConversation, ...current],
+    );
+    setActiveChatId(chatId);
+    setDraft("");
+  }
+
+  function startNewChat() {
+    setActiveChatId(null);
+    setMode("diagnosis");
+    setDraft("");
+  }
+
+  function selectChat(conversation: Conversation) {
+    setActiveChatId(conversation.id);
+    setMode(conversation.mode);
+    setDraft("");
+  }
+
+  function changeMode(nextMode: ChatMode) {
+    setMode(nextMode);
+    if (activeChatId) {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === activeChatId
+            ? { ...conversation, mode: nextMode }
+            : conversation,
+        ),
+      );
+    }
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <ChatWorkspace
+      conversations={conversations}
+      activeChatId={activeChatId}
+      messages={messages}
+      mode={mode}
+      draft={draft}
+      onDraftChange={setDraft}
+      onSendMessage={sendMessage}
+      onNewChat={startNewChat}
+      onSelectChat={selectChat}
+      onModeChange={changeMode}
+    />
   );
 }
 
