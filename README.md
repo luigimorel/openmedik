@@ -1,7 +1,8 @@
-# Tauri + React + Typescript
+### Introduction
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+OpenMedik is an open-source platform aimed at aiding healthcare professionals during diagnosis and treatment planning.
+It leverages LLM technology to provide accurate and efficient medical insights, enhancing the decision-making process in
+clinical settings. The platform is designed to be user-friendly, ensuring that healthcare providers can easily access
+and utilize its features.
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+![Screenshot of the desktop application](./image.png)
